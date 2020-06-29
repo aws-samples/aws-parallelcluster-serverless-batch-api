@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS ParallelCluster serverless API for AWS Batch client
+Globals:
+  Function:
+    Timeout: 900
+
+Resources:
+  ParallelClusterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: parallelcluster_batch_function/
+      Handler: function.lambda_handler
+      Runtime: python3.7
+      Policies:
+      - Statement:
+        - Sid: pClusterBatch
+          Effect: Allow
+          Action:
+          - batch:SubmitJob
+          - batch:RegisterJobDefinition
+          - cloudformation:DescribeStacks
+          - ecs:ListContainerInstances
+          - ecs:DescribeContainerInstances
+          - logs:GetLogEvents
+          - logs:FilterLogEvents
+          - s3:PutObject
+          - s3:Get*
+          - s3:DeleteObject
+          - iam:PassRole
+          Resource:
+          - arn:aws:batch:<REGION>:<AWS ACCOUNT ID>:job-definition/*
+          - arn:aws:batch:<REGION>:<AWS ACCOUNT ID>:job-definition/*
+          - arn:aws:batch:<REGION>:<AWS ACCOUNT ID>:job-queue/*
+          - arn:aws:cloudformation:<REGION>:<AWS ACCOUNT ID>:stack/parallelcluster-*
+          - arn:aws:s3:::parallelcluster-*
+          - arn:aws:iam::<AWS ACCOUNT ID>:role/parallelcluster-*
+          - arn:aws:ecs:<REGION>:<AWS ACCOUNT ID>:cluster/*
+          - arn:aws:ecs:<REGION>:<AWS ACCOUNT ID>:container-instance/*
+          - arn:aws:logs:<REGION>:<AWS ACCOUNT ID>:log-group:/aws/batch/job:log-stream:*
+        - Sid: s3List
+          Effect: Allow
+          Action:
+          - s3:List*
+          Resource: 'arn:aws:s3:::parallelcluster-*'
+        - Sid: Batch
+          Effect: Allow
+          Action:
+          - batch:DescribeJobQueues
+          - batch:TerminateJob
+          - batch:DescribeJobs
+          - batch:CancelJob
+          - batch:DescribeJobDefinitions
+          - batch:ListJobs
+          - batch:DescribeComputeEnvironments
+          - ec2:DescribeInstances
+          Resource: '*'
+      Events:
+        pCluster:
+          Type: Api
+          Properties:
+            Path: /pclusterbatch
+            Method: any
+
+Outputs:
+  ParallelClusterApi:
+    Description: "API Gateway endpoint URL for Prod stage for ParallelCluster function"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/pclusterbatch/"
